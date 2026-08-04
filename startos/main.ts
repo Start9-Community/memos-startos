@@ -12,8 +12,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // preferring publicly-reachable hosts (clearnet/Tor) so RSS/webhooks/
   // notifications link to an externally-valid host, then any non-local (LAN),
   // then a loopback boot fallback. A pin wins over derivation.
-  const uiInterface = await sdk.serviceInterface
-    .getOwn(effects, 'ui', (i) => i)
+  const uiInterface = await sdk.host
+    .getOwn(effects, 'ui', (h) => h?.bindings[uiPort]?.interfaces['ui'] ?? null)
     .const()
   const addressInfo = uiInterface?.addressInfo ?? null
   const firstNonLocal = (list: string[] | undefined) =>
@@ -24,7 +24,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     `http://localhost:${uiPort}`
   const instanceUrl = instanceUrlPin || derivedInstanceUrl
 
-  const memosSub = await sdk.SubContainer.of(
+  const memosSub = sdk.SubContainer.of(
     effects,
     { imageId: 'memos' },
     sdk.Mounts.of().mountVolume({

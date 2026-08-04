@@ -14,10 +14,11 @@ To run a command inside a service's container (read its generated config, grep a
 
 ## Package-specific notes
 
-- **SDK pinned to `@start9labs/start-sdk@1.5.3`.** Do not bump to 2.x. The
-  workspace host is StartOS 0.4.0-beta.9 (see the workspace
-  `AGENTS.local.md`); SDK 2.0+ targets 0.4.0-beta.10 and produces `.s9pk`
-  files that fail to install / hang on this host.
+- **SDK is `@start9labs/start-sdk@2.0.9`** (upgraded 2026-08-04; the workspace
+  host is now StartOS 0.4.0.1 — see the workspace `AGENTS.local.md`). Service
+  interfaces are read via `sdk.host.getOwn(effects, 'ui', h =>
+  h?.bindings[uiPort]?.interfaces['ui'] ?? null)` — the 1.x
+  `sdk.serviceInterface.*` accessors were removed in SDK 2.0.0.
 - **Single daemon** (`memos`, SQLite embedded, no sidecars). `MEMOS_INSTANCE_URL`
   auto-derived from the `ui` host (pinnable via Set Instance URL). Backups are a
   single whole-volume rsync of `main`.
