@@ -1,0 +1,27 @@
+export const DEFAULT_LANG = 'en_US'
+
+const dict = {
+  // main.ts
+  'Starting Memos': 0,
+  'Web Interface': 1,
+  'The web interface is ready': 2,
+  'The web interface is not ready': 3,
+  // interfaces.ts
+  'Self-hosted note-taking service — capture and organize Markdown notes.': 4,
+  // actions/setInstanceUrl.ts
+  'Set Instance URL': 5,
+  'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. Only required when you use RSS feeds or webhooks, because generated links must resolve to an external domain. For normal use the URL is derived automatically, so you can ignore this action.': 6,
+  'Instance URL': 7,
+  'Instance URL updated. The service restarts automatically to pick up the new host.': 8,
+  'Choose a host': 9,
+  'Auto (derive from current address)': 10,
+  // init/watchInstanceUrl.ts
+  'If you use RSS feeds or webhooks into Memos, pin the Instance URL to your external domain so generated links resolve correctly. Otherwise the URL is derived automatically.': 11,
+} as const
+
+/**
+ * Plumbing. DO NOT EDIT.
+ */
+export type I18nKey = keyof typeof dict
+export type LangDict = Record<(typeof dict)[I18nKey], string>
+export default dict
