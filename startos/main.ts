@@ -9,20 +9,19 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const instanceUrlPin = await storeJson.read((s) => s.instanceUrl).const(effects)
 
   // Derive MEMOS_INSTANCE_URL from the live ui interface address (reactive),
-  // preferring publicly-reachable hosts (clearnet/Tor) so RSS/webhooks/
-  // notifications link to an externally-valid host, then any non-local (LAN),
-  // then a loopback boot fallback. A pin wins over derivation.
+  // preferring publicly-reachable hosts (clearnet/Tor), then any non-local
+  // address (LAN). A pin wins over derivation; no address means private mode.
   const uiInterface = await sdk.host
     .getOwn(effects, 'ui', (h) => h?.bindings[uiPort]?.interfaces['ui'] ?? null)
     .const()
   const addressInfo = uiInterface?.addressInfo ?? null
   const firstNonLocal = (list: string[] | undefined) =>
     list && list.length ? list[0] : null
-  const derivedInstanceUrl =
-    firstNonLocal(addressInfo?.public.format('urlstring')) ??
-    firstNonLocal(addressInfo?.nonLocal.format('urlstring')) ??
-    `http://localhost:${uiPort}`
-  const instanceUrl = instanceUrlPin || derivedInstanceUrl
+  const instanceUrl =
+    instanceUrlPin ||
+    firstNonLocal(addressInfo?.public.format('urlstring')) ||
+    firstNonLocal(addressInfo?.nonLocal.format('urlstring')) ||
+    ''
 
   const memosSub = sdk.SubContainer.of(
     effects,

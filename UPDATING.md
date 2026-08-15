@@ -11,7 +11,7 @@ image pin is `images.memos.source.dockerTag` in
    <https://github.com/usememos/memos/releases>.
 2. Confirm the matching Docker tag exists in `neosmemo/memos`. GitHub release
    tags use a `v` prefix, while Docker tags do not; for example, GitHub
-   `v0.29.1` maps to Docker `neosmemo/memos:0.29.1`.
+    `v0.30.0` maps to Docker `neosmemo/memos:0.30.0`.
 3. Inspect the Docker manifest and confirm `linux/amd64` and `linux/arm64`
    images exist before retaining both StartOS architectures.
 4. Read upstream release notes and migration guidance. Check for changes to

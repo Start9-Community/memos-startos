@@ -41,7 +41,7 @@ One unmodified upstream image, run as a single StartOS daemon:
 
 | Daemon | Image | Architectures |
 | --- | --- | --- |
-| `memos` | `neosmemo/memos:0.29.1` | `x86_64`, `aarch64` |
+| `memos` | `neosmemo/memos:0.30.0` | `x86_64`, `aarch64` |
 
 The image has a real `ENTRYPOINT`:
 
@@ -89,11 +89,12 @@ One volume:
    created via the web UI becomes the **HOST** (admin). Close public sign-up
    afterward inside Memos's own admin Settings.
 3. **`MEMOS_INSTANCE_URL` is derived** automatically from the live `ui`
-   interface address (preferring publicly-reachable hosts). An **`optional`**
-   task (`init/watchInstanceUrl.ts`) points RSS/webhook users at the **Set
-   Instance URL** action.
-4. **No database migrations** are needed — the embedded SQLite DB is created
-   on first boot.
+   interface address (preferring publicly-reachable hosts). If no address is
+    available, Memos runs privately. An **`optional`** task
+    (`init/watchInstanceUrl.ts`) points RSS/webhook users at the **Set Instance
+    URL** action.
+4. Memos 0.30.0 applies its own SQLite migrations on startup; the package does
+    not add a custom database migration.
 
 ## Configuration Management
 
@@ -123,8 +124,9 @@ and custom StartOS domains like any UI interface.
   - *Inputs:* a `dynamicSelect` of the `ui` interface's current non-local
     hostnames (plus an **Auto** option).
   - *Outputs:* the chosen host. The service restarts to apply it.
-  - *When to use:* only for RSS feeds or webhooks, where generated absolute
-    URLs must resolve to an external domain. Normal password use is unaffected.
+  - *When to use:* use a pinned stable external origin for RSS feeds, webhooks,
+    or public anonymous access. **Auto** may derive a changing StartOS address;
+    if no address is available, Memos remains private.
 
 ## Backups and Restore
 
@@ -135,12 +137,10 @@ volume:
 | --- | --- |
 | SQLite DB + uploaded assets (`main` volume) | whole-volume rsync (includes `store.json`) |
 
-StartOS stops the service before taking a backup, so the SQLite file is
-quiescent while rsync runs — a plain whole-volume snapshot is a safe,
-consistent backup (no WAL-torn-copy risk, no `pg_dump`-equivalent needed).
-
-Restoring brings back notes, accounts, and uploaded assets; the service then
-starts cleanly.
+The package declares a whole-volume backup of `main`, including the SQLite
+database, uploaded assets, and `store.json`. Restoring is intended to bring
+back notes, accounts, and uploaded assets; the service should then start
+cleanly.
 
 ## Health Checks
 
@@ -163,8 +163,9 @@ None. Memos uses an embedded SQLite database — no external DB or sidecars.
 2. **`MEMOS_INSTANCE_URL` auto-derivation.** StartOS fronts the service with
    a reverse proxy reachable at several addresses; the package derives
    `MEMOS_INSTANCE_URL` from the `ui` interface's current public address
-   (preferring clearnet/Tor, falling back to LAN/loopback). For RSS/webhooks,
-   pin the Instance URL to your registered external domain.
+   (preferring clearnet/Tor, falling back to LAN). If no address is available,
+    Memos remains private. For RSS/webhooks, pin the Instance URL to your
+    registered external domain.
 3. **SQLite only.** This package uses the embedded SQLite backend. External
    PostgreSQL/MySQL is out of scope for v1.
 4. **Backup size** — uploaded assets under `/var/opt/memos` can grow with
@@ -172,10 +173,21 @@ None. Memos uses an embedded SQLite database — no external DB or sidecars.
    `addSync` (incremental rsync) with an `exclude` for transient caches if it
    balloons.
 
+## Memos 0.30.0 Upgrade Notes
+
+- Instances without `MEMOS_INSTANCE_URL` are private; anonymous API access is
+  restricted and RSS feeds are unavailable. Use a pinned stable URL when public
+  access or RSS is required.
+- Saved time filters using `now()` must use the 0.30.0 timestamp syntax.
+- Shared-memo API clients must use the new shared-memo route and resource name.
+- MCP clients must use `/mcp` and the new service-prefixed tool names.
+- Existing instance tag settings are copied to users by the upstream SQLite
+  migration on startup.
+
 ## What Is Unchanged from Upstream
 
 - The web UI, REST/gRPC APIs, Markdown notes, tags, resources (attachments),
-  and RSS follow the upstream docs.
+  and RSS follow the upstream docs, subject to the 0.30.0 changes above.
 - The image's bundled entrypoint script (chown + su-exec) and non-root
   runtime model are unchanged.
 - SQLite is the default DB backend (upstream default).
@@ -193,7 +205,7 @@ lives in [`TODO.md`](./TODO.md).
 ```yaml
 package_id: memos
 architectures: [x86_64, aarch64]
-image: neosmemo/memos:0.29.1
+image: neosmemo/memos:0.30.0
 volumes:
   main: /var/opt/memos
 ports:
@@ -208,7 +220,7 @@ startos_managed_env_vars:
 actions:
   - set-instance-url
 store_json:
-  instanceUrl: pinned MEMOS_INSTANCE_URL origin (empty = auto-derive)
-sdk: @start9labs/start-sdk@1.5.3
-os_version: 0.4.0-beta.9
+  instanceUrl: pinned MEMOS_INSTANCE_URL origin (empty = auto-derive; no address = private)
+sdk: @start9labs/start-sdk@2.0.9
+os_version: 0.4.0.1
 ```

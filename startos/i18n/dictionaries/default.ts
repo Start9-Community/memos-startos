@@ -10,7 +10,7 @@ const dict = {
   'Self-hosted note-taking service — capture and organize Markdown notes.': 4,
   // actions/setInstanceUrl.ts
   'Set Instance URL': 5,
-  'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. Only required when you use RSS feeds or webhooks, because generated links must resolve to an external domain. For normal use the URL is derived automatically, so you can ignore this action.': 6,
+  'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. An instance URL enables public anonymous access and is required for RSS feeds and webhooks. For private use, select Auto when no address should be advertised.': 6,
   'Instance URL': 7,
   'Instance URL updated. The service restarts automatically to pick up the new host.': 8,
   'Choose a host': 9,

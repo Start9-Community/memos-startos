@@ -29,7 +29,7 @@ const inputSpec = InputSpec.of({
     return {
       name: i18n('Choose a host'),
       description: i18n(
-        'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. Only required when you use RSS feeds or webhooks, because generated links must resolve to an external domain. For normal use the URL is derived automatically, so you can ignore this action.',
+        'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. An instance URL enables public anonymous access and is required for RSS feeds and webhooks. For private use, select Auto when no address should be advertised.',
       ),
       warning: null,
       default: defaultKey,
@@ -48,7 +48,7 @@ export const setInstanceUrl = sdk.Action.withInput(
   {
     name: i18n('Set Instance URL'),
     description: i18n(
-      'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. Only required when you use RSS feeds or webhooks, because generated links must resolve to an external domain. For normal use the URL is derived automatically, so you can ignore this action.',
+       'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. An instance URL enables public anonymous access and is required for RSS feeds and webhooks. For private use, select Auto when no address should be advertised.',
     ),
     warning: null,
     allowedStatuses: 'any',
