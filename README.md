@@ -222,5 +222,5 @@ actions:
 store_json:
   instanceUrl: pinned MEMOS_INSTANCE_URL origin (empty = auto-derive; no address = private)
 sdk: @start9labs/start-sdk@2.0.9
-os_version: 0.4.0.1
+os_version: 0.4.0-beta.10 (SDK-stamped; runtime-verified on host 0.4.0.1)
 ```

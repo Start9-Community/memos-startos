@@ -1,20 +1,22 @@
 # TODO
 
-Deferred items + the verification checklist for this v1. The implementation
-plan lives in `plan.md`; the SDK is pinned to `1.5.3` (see `AGENTS.md` and the
-workspace `AGENTS.local.md`).
+Deferred items + the verification checklist for this v1. The SDK is pinned to
+`@start9labs/start-sdk@2.0.9` (see `AGENTS.md` and the workspace
+`AGENTS.local.md`).
 
-## Pending verification (must run on a real StartOS 0.4.0-beta.9 box)
+## Verification status (StartOS 0.4.0.1 box, `0.30.0:0`)
 
-A clean `tsc` + `s9pk pack` does NOT prove the service runs. From `plan.md` §8-9:
+A clean `tsc` + `s9pk pack` does NOT prove the service runs. Verification checklist:
 
-- [ ] `make x86 install` builds + installs `memos.s9pk`.
-- [ ] **Install completes**. Watch for the SDK-2.x "install stuck" symptom
-      (`container ID = N/A`, never created) — if seen, the SDK is wrong,
-      re-pin `1.5.3`. (Verified pinned: `node_modules/@start9labs/start-sdk`
-      `package.json` `"version"` = `1.5.3`.)
-- [ ] `memos` daemon goes green (logs: entrypoint chowns volume, su-exec
-      drops to 10001, memos binds 5230).
+- [x] `make x86 install` builds + installs `memos.s9pk`.
+- [x] **Install completes.** The package is on SDK `2.0.9` (verified pinned:
+      `node_modules/@start9labs/start-sdk/package.json` `"version"` = `2.0.9`).
+      The old `1.5.3` pin is retired — it existed only while the host was
+      0.4.0-beta.9. SDK 2.0.9 stamps `osVersion = "0.4.0-beta.10"`, which the
+      0.4.0.1 host accepts.
+- [x] `memos` daemon reaches `ready`. Install + daemon health + restart were
+      runtime-verified on StartOS 0.4.0.1 as part of the SDK 2.0.9 upgrade
+      (see the workspace `AGENTS.local.md`).
 - [ ] Open the web UI → **create the first account** → log in → confirm
       admin (create a memo, upload an attachment → verify the DB row + asset
       file land on the `main` volume at `/var/opt/memos`, owner `10001`).
@@ -22,11 +24,12 @@ A clean `tsc` + `s9pk pack` does NOT prove the service runs. From `plan.md` §8-
       sign-ups are rejected. Re-enable to confirm the toggle works.
 - [ ] **Backup** → fresh install → **restore** → confirm notes + accounts +
       assets survive and the service restarts cleanly.
-- [ ] Restart the service → daemon comes back up.
+- [x] Restart the service → daemon comes back up (verified on 0.4.0.1 during
+      the SDK upgrade — see the workspace `AGENTS.local.md`).
 - [ ] (If feasible) confirm reactive `MEMOS_INSTANCE_URL` follows a
       gateway/hostname enable/disable.
 
-## Open risks from `plan.md` §12
+## Open risks
 
 - [ ] **Volume ownership / non-root runtime.** The image's `entrypoint.sh`
       runs as root, chowns `/var/opt/memos` to `10001:10001`, then exec su-exec
