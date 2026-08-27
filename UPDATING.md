@@ -1,38 +1,41 @@
-# Updating Memos
+# Updating the upstream version
 
-This package wraps the upstream `neosmemo/memos` Docker image. The current
-image pin is `images.memos.source.dockerTag` in
-`startos/manifest/index.ts`. StartOS package versions use
-`<upstream-version>:<wrapper-version>` in `startos/versions/current.ts`.
+This package wraps the upstream [Memos](https://github.com/usememos/memos)
+Docker image, `neosmemo/memos`. A bump is a tag change plus a check that the
+runtime contract still holds.
 
-## Determine The Upstream Version
+## Determining the upstream version
 
-1. Read the latest stable release from
-   <https://github.com/usememos/memos/releases>.
-2. Confirm the matching Docker tag exists in `neosmemo/memos`. GitHub release
-   tags use a `v` prefix, while Docker tags do not; for example, GitHub
-    `v0.30.0` maps to Docker `neosmemo/memos:0.30.0`.
-3. Inspect the Docker manifest and confirm `linux/amd64` and `linux/arm64`
-   images exist before retaining both StartOS architectures.
-4. Read upstream release notes and migration guidance. Check for changes to
-   the entrypoint, UID/GID, `/var/opt/memos`, port `5230`, environment
-   variables, database behavior, and health endpoint.
+- **memos** ([usememos/memos](https://github.com/usememos/memos)) — fetch the
+  latest release tag:
 
-Do not infer a Docker tag or architecture from the GitHub release alone.
+  ```sh
+  gh release view -R usememos/memos --json tagName -q .tagName
+  ```
 
-## Apply The Update
+  GitHub tags carry a leading `v`; the Docker tags do not (`v0.30.0` →
+  `neosmemo/memos:0.30.0`). Confirm the tag exists for both architectures
+  before pinning it:
 
-1. Update `images.memos.source.dockerTag` in
-   `startos/manifest/index.ts`.
-2. Update `version` and localized `releaseNotes` in
-   `startos/versions/current.ts`. Keep `current.ts` unless the update needs a
-   migration; a released version alone does not require a new version file.
-3. Update version-specific image references in `README.md` and any affected
-   user guidance in `instructions.md`.
-4. Run `npm install` only when dependencies changed; otherwise preserve the
-   lockfile.
-5. Run `npm run check`, `npm run build`, and pack the target architecture.
-6. Install on the configured StartOS test host and complete the runtime,
-   persistence, restart, backup, and restore checks in `TODO.md`.
+  ```sh
+  docker buildx imagetools inspect neosmemo/memos:<new version> \
+    --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}'
+  ```
 
-Do not call an update complete based only on TypeScript or pack success.
+  The current pin lives in `startos/manifest/index.ts` at
+  `images.memos.source.dockerTag`.
+
+## Applying the bump
+
+- Bump `dockerTag` in `startos/manifest/index.ts`.
+- Set `version` in `startos/versions/current.ts` to `<new version>:0` and
+  rewrite `releaseNotes` in every locale.
+- Re-check the assumptions this package makes about the image, all of which are
+  visible in its config (`docker buildx imagetools inspect neosmemo/memos:<tag>
+  --format '{{json .Image}}'`):
+  - the entrypoint still chowns `/var/opt/memos` before dropping to UID 10001,
+  - `MEMOS_PORT`, `MEMOS_DATA`, and `MEMOS_DRIVER` still name the same things,
+  - the internal port is still 5230.
+- Read the upstream release notes for changes to `MEMOS_INSTANCE_URL`
+  semantics — the package derives that value, so a change in what Memos does
+  with it is a change in this package's behavior.

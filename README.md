@@ -1,19 +1,22 @@
 <p align="center">
-  <img src="icon.png" alt="Memos Logo" width="21%" />
+  <img src="icon.png" alt="Memos Logo" width="21%">
 </p>
 
 # Memos on StartOS
 
-> **Upstream docs:** <https://usememos.com/docs>
->
 > Everything not listed in this document should behave the same as upstream
 > Memos. If a feature, setting, or behavior is not mentioned here, the
-> upstream documentation is accurate and fully applicable.
+> upstream documentation is accurate and fully applicable — see the
+> Documentation section of `instructions.md` for links.
 
-Memos is an open-source, self-hosted note-taking service built for quick
-capture. It stores notes as Markdown, runs as a single lightweight Go binary
-with an embedded SQLite database, and exposes REST and gRPC APIs. Upstream:
-<https://github.com/usememos/memos> (MIT).
+Memos is a self-hosted note-taking service that stores notes as Markdown in an
+embedded SQLite database and exposes them over REST and gRPC. This package runs
+the upstream image unmodified and derives the one setting that a StartOS
+service cannot know for itself: the origin Memos advertises to the outside
+world.
+
+- **Upstream repo:** <https://github.com/usememos/memos>
+- **Wrapper repo:** <https://github.com/Start9-Community/memos-startos>
 
 ---
 
@@ -21,182 +24,192 @@ with an embedded SQLite database, and exposes REST and gRPC APIs. Upstream:
 
 - [Image and Container Runtime](#image-and-container-runtime)
 - [Volume and Data Layout](#volume-and-data-layout)
-- [Installation and First-Run Flow](#installation-and-first-run-flow)
-- [Configuration Management](#configuration-management)
-- [Network Access and Interfaces](#network-access-and-interfaces)
-- [Actions (StartOS UI)](#actions-startos-ui)
-- [Backups and Restore](#backups-and-restore)
-- [Health Checks](#health-checks)
+- [File Models](#file-models)
 - [Dependencies](#dependencies)
+- [Network Access and Interfaces](#network-access-and-interfaces)
+- [Installation and First-Run Flow](#installation-and-first-run-flow)
+- [Actions](#actions)
+- [Tasks](#tasks)
+- [Health Checks](#health-checks)
+- [Backups and Restore](#backups-and-restore)
 - [Limitations and Differences](#limitations-and-differences)
-- [What Is Unchanged from Upstream](#what-is-unchanged-from-upstream)
-- [Contributing](#contributing)
 - [Quick Reference for AI Consumers](#quick-reference-for-ai-consumers)
 
 ---
 
 ## Image and Container Runtime
 
-One unmodified upstream image, run as a single StartOS daemon:
+The upstream image, run unmodified, plus a small one this repository builds.
 
-| Daemon | Image | Architectures |
-| --- | --- | --- |
-| `memos` | `neosmemo/memos:0.30.0` | `x86_64`, `aarch64` |
+| Property      | Value                                            |
+| ------------- | ------------------------------------------------ |
+| Images        | `neosmemo/memos`, plus `reset` built from `reset/` |
+| Architectures | x86_64, aarch64                                   |
+| Command       | the image's own entrypoint                        |
 
-The image has a real `ENTRYPOINT`:
+| Subcontainer | Purpose                                                       |
+| ------------ | ------------------------------------------------------------- |
+| `memos`      | The only daemon — the one to `attach` to                      |
+| `reset`      | Alpine with `sqlite3`, run on demand by **Reset Admin Password** |
 
-```
-['/usr/local/memos/entrypoint.sh', '/usr/local/memos/memos']
-```
+The `reset` image exists because the upstream one carries busybox and a static
+Go binary and nothing else — no `sqlite3`, no interpreter — so there is no way
+to reach the database from inside it.
 
-Consequences baked into this package:
-
-- The entrypoint script `entrypoint.sh` starts as root, `chown -R
-  10001:10001 /var/opt/memos`, then `exec su-exec 10001:10001 memos` — so the
-  app process ends up non-root (UID/GID `10001` = the `nonroot` user). The
-  StartOS-owned volume at `/var/opt/memos` is auto-chowned at every boot and
-  the app writes succeed as nonroot.
-- `useEntrypoint()` (no override) preserves that ENTRYPOINT+CMD. Because the
-  image has a real entrypoint (not a CMD-only image), the
-  "useEntrypoint-on-a-CMD-only-image" risk does NOT apply here.
-- `su-exec` is an exec tool that replaces the process (like `gosu`), NOT a
-  PID-1 init supervisor (s6/tini/dumb-init/supervisord), so `runAsInit` is
-  intentionally left at its default.
-- `MEMOS_UID` / `MEMOS_GID` are left at their default `10001` — the
-  entrypoint chowns the mounted volume as root before dropping privileges.
-  **Do NOT override them to 0** (that is the rootless-Docker case the
-  entrypoint's `MEMOS_ENTRYPOINT_SWITCHED` guard protects against, and would
-  make memos run as root permanently).
+The entrypoint starts as root, chowns the data volume to UID/GID `10001`, then
+drops to that user for the life of the process. The package leaves `MEMOS_UID`
+and `MEMOS_GID` unset so that sequence runs as upstream intends; the volume is
+re-chowned on every boot, so a restored or hand-copied volume repairs itself.
 
 ## Volume and Data Layout
 
-One volume:
+One volume holding everything Memos persists.
 
-| Volume | Mount point | Contents |
-| --- | --- | --- |
-| `main` | `/var/opt/memos` | SQLite DB (`memos_prod.db`) + uploaded assets |
+| Volume | Mount Point      | Purpose                                                |
+| ------ | ---------------- | ------------------------------------------------------ |
+| `main` | `/var/opt/memos` | SQLite database, uploaded attachments, and `store.json` |
 
-`store.json` lives at the root of the `main` volume. It holds the optional
-`MEMOS_INSTANCE_URL` pin (see Quick Reference), seeded to `''` at install by
-`init/seedFiles.ts` and NOT regenerated on restore.
+Memos runs on its embedded SQLite backend. There is no external database, no
+sidecar, and nothing outside this volume to preserve.
 
-## Installation and First-Run Flow
+## File Models
 
-1. **No secrets are generated.** Memos uses SQLite with no password; the only
-   persisted package state is `instanceUrl: ''` (auto-derive).
-2. **No admin-credential action exists.** Memos has no CLI/gRPC subcommand to
-   provision an admin. Sign-up is **open** by default and the first account
-   created via the web UI becomes the **HOST** (admin). Close public sign-up
-   afterward inside Memos's own admin Settings.
-3. **`MEMOS_INSTANCE_URL` is derived** automatically from the live `ui`
-   interface address (preferring publicly-reachable hosts). If no address is
-    available, Memos runs privately. An **`optional`** task
-    (`init/watchInstanceUrl.ts`) points RSS/webhook users at the **Set Instance
-    URL** action.
-4. Memos 0.30.0 applies its own SQLite migrations on startup; the package does
-    not add a custom database migration.
+One model, and it holds StartOS-side state rather than Memos configuration.
 
-## Configuration Management
+| Model        | File                          | Format |
+| ------------ | ----------------------------- | ------ |
+| `store.json` | `store.json` on `main`'s root | JSON   |
 
-| StartOS-Managed | Upstream / not yet exposed |
-| --- | --- |
-| `MEMOS_PORT` (fixed to `5230`) | External PostgreSQL/MySQL backend (`MEMOS_DRIVER=postgres\|mysql` + `MEMOS_DSN`) |
-| `MEMOS_DATA` (fixed to `/var/opt/memos`) | SMTP/email config |
-| `MEMOS_DRIVER` (fixed to `sqlite`) | AI/LLM provider configuration |
-| `MEMOS_INSTANCE_URL` (auto-derived or pinned via the action) | Multi-user / SSO specifics |
-| `MEMOS_LOG_LEVEL` (fixed to `info`) | |
+It holds a single key, `instanceUrl` — the origin pinned through the **Set
+Instance URL** action. It is seeded to `""` on install only, and a restore
+carries the user's pin forward untouched. An empty value means "derive at
+runtime"; a non-empty value is used verbatim and is never re-asserted by the
+package, so a pin survives address changes until the user clears it.
 
-## Network Access and Interfaces
-
-| Interface | Internal port | Protocol | Purpose |
-| --- | --- | --- | --- |
-| `ui` | `5230` | `http` | The web UI (also serves the REST/gRPC API). Single exposed interface. |
-
-No sidecars, no peer/SMTP/DB ports. Reachable via LAN IP, `.local`, `.onion`,
-and custom StartOS domains like any UI interface.
-
-## Actions (StartOS UI)
-
-- **Set Instance URL** (`set-instance-url`)
-  - *Purpose:* pin (or unpin via **Auto**) the origin used for
-    `MEMOS_INSTANCE_URL`.
-  - *Visibility:* always enabled; also surfaced as an `optional` task.
-  - *Inputs:* a `dynamicSelect` of the `ui` interface's current non-local
-    hostnames (plus an **Auto** option).
-  - *Outputs:* the chosen host. The service restarts to apply it.
-  - *When to use:* use a pinned stable external origin for RSS feeds, webhooks,
-    or public anonymous access. **Auto** may derive a changing StartOS address;
-    if no address is available, Memos remains private.
-
-## Backups and Restore
-
-`sdk.Backups.ofVolumes('main')` captures a whole-volume rsync of the `main`
-volume:
-
-| Backed up | How |
-| --- | --- |
-| SQLite DB + uploaded assets (`main` volume) | whole-volume rsync (includes `store.json`) |
-
-The package declares a whole-volume backup of `main`, including the SQLite
-database, uploaded assets, and `store.json`. Restoring is intended to bring
-back notes, accounts, and uploaded assets; the service should then start
-cleanly.
-
-## Health Checks
-
-| Daemon | Probe | Messages |
-| --- | --- | --- |
-| `memos` | `checkWebUrl http://127.0.0.1:5230/` (displayed), 30 s grace | "The web interface is ready" / "The web interface is not ready" |
-
-`checkWebUrl` (not just port-listening) catches "port bound but app still
-booting". 30 s grace is generous for a Go binary first boot.
+Everything else Memos needs is delivered as an environment variable, re-read on
+every launch: `MEMOS_PORT`, `MEMOS_DATA`, `MEMOS_DRIVER`, `MEMOS_LOG_LEVEL`,
+and `MEMOS_INSTANCE_URL`. Memos owns its own settings database for everything
+the user configures in the web UI; the package does not write to it.
 
 ## Dependencies
 
-None. Memos uses an embedded SQLite database — no external DB or sidecars.
+None.
+
+## Network Access and Interfaces
+
+One interface, serving both the web UI and the API.
+
+| Interface | Id   | Type | Port | Description                                    |
+| --------- | ---- | ---- | ---- | ---------------------------------------------- |
+| Web Interface | `ui` | ui | 5230 | The Memos UI, and its REST and gRPC endpoints |
+
+`MEMOS_INSTANCE_URL` is derived from this interface's enabled addresses,
+preferring a publicly reachable one and falling back to any non-local address.
+The value is resolved when the daemon starts, so a service that has just gained
+or lost an address may need a restart before Memos advertises the new one. An
+origin pinned through the action is applied immediately.
+
+## Installation and First-Run Flow
+
+Nothing is generated and nothing is pre-configured. Memos has no way to
+provision an administrator from the command line, so registration is open on a
+fresh install and **the first account created through the web UI becomes the
+administrator**. Closing sign-up afterwards is done inside Memos' own settings,
+not through StartOS.
+
+Memos applies its own SQLite schema migrations on startup; the package adds
+none.
+
+## Actions
+
+Two actions, neither needed on an ordinary day.
+
+**Set Instance URL** (`set-instance-url`)
+
+- **When to run it** — when RSS feeds, webhooks, or public anonymous access
+  must resolve to a stable external domain. Memos builds absolute URLs from
+  `MEMOS_INSTANCE_URL`, and the derived value follows whichever address the
+  user currently has enabled, which can change.
+- **What it changes** — the `instanceUrl` key in `store.json`. Nothing inside
+  Memos' own database is touched.
+- **Cost** — the daemon restarts to pick up the new environment; a few seconds
+  of downtime.
+- **Repeat safety** — idempotent. Re-running with the same choice is a no-op;
+  choosing **Auto** clears the pin and returns to derivation.
+- **Outputs** — the origin now in effect.
+
+The input is a dropdown of the `ui` interface's currently reachable non-local
+addresses, built when the form opens. An install with no non-local address
+enabled offers only **Auto** — see [Limitations](#limitations-and-differences).
+
+**Reset Admin Password** (`reset-password`)
+
+- **When to run it** — the administrator has lost their password. Memos has no
+  password-recovery flow of its own and no CLI, so without this the account is
+  unreachable and the notes behind it are unreadable.
+- **What it changes** — the `password_hash` of the lowest-numbered account
+  holding the owner role, written straight into the SQLite database. Nothing
+  else in the database is touched, and no other account is affected.
+- **Cost** — seconds. The service must be **stopped**, because the database is
+  a file on the volume and nothing may hold it open while it is rewritten.
+- **Repeat safety** — safe to repeat; each run mints a new password and
+  invalidates the previous one.
+- **What happens next** — start the service and sign in with the credentials
+  returned. Existing sessions are not revoked, matching what upstream does on
+  an ordinary password change.
+- **Outputs** — the account's username, and the new password, masked and
+  copyable. It is shown once per run.
+
+## Tasks
+
+One task, and it never blocks the service.
+
+| Task            | Severity   | Raised by                     |
+| --------------- | ---------- | ----------------------------- |
+| Set Instance URL | `optional` | Every init, on every start    |
+
+It is a standing reminder that RSS and webhook users should pin an origin. It
+is raised unconditionally rather than on a condition, so it is present from the
+first start; running the action satisfies it, and satisfying it is permanent —
+the replay key is stable, so later starts do not raise it again.
+
+## Health Checks
+
+One check, on the only daemon.
+
+| Check   | Displayed       | Method                        | Grace |
+| ------- | --------------- | ----------------------------- | ----- |
+| `memos` | "Web Interface" | HTTP GET on the internal port | 30 s  |
+
+An HTTP probe rather than a port check, so "listening but not serving" reads as
+not-ready. A failure past the grace period means the Go binary exited or could
+not open its database — the service logs name the reason, and a permissions
+problem on the data volume is the usual one.
+
+## Backups and Restore
+
+The `main` volume is copied wholesale — `sdk.Backups.ofVolumes('main')`.
+StartOS stops the service before the copy runs, so the SQLite database is
+quiescent and needs no dump step.
+
+That single volume is everything: notes, accounts, attachments, Memos' own
+settings, and the package's `store.json`. A restored instance is usable
+immediately with no resync and no credential to re-enter.
 
 ## Limitations and Differences
 
-1. **No admin-credential action.** The first web sign-up becomes the HOST
-   (admin). There is no CLI/API to provision an admin user upstream. Close
-   public sign-up afterward in Memos's own Settings.
-2. **`MEMOS_INSTANCE_URL` auto-derivation.** StartOS fronts the service with
-   a reverse proxy reachable at several addresses; the package derives
-   `MEMOS_INSTANCE_URL` from the `ui` interface's current public address
-   (preferring clearnet/Tor, falling back to LAN). If no address is available,
-    Memos remains private. For RSS/webhooks, pin the Instance URL to your
-    registered external domain.
-3. **SQLite only.** This package uses the embedded SQLite backend. External
-   PostgreSQL/MySQL is out of scope for v1.
-4. **Backup size** — uploaded assets under `/var/opt/memos` can grow with
-   use. v1 backs up the whole volume (`ofVolumes`); switch that volume to
-   `addSync` (incremental rsync) with an `exclude` for transient caches if it
-   balloons.
-
-## Memos 0.30.0 Upgrade Notes
-
-- Instances without `MEMOS_INSTANCE_URL` are private; anonymous API access is
-  restricted and RSS feeds are unavailable. Use a pinned stable URL when public
-  access or RSS is required.
-- Saved time filters using `now()` must use the 0.30.0 timestamp syntax.
-- Shared-memo API clients must use the new shared-memo route and resource name.
-- MCP clients must use `/mcp` and the new service-prefixed tool names.
-- Existing instance tag settings are copied to users by the upstream SQLite
-  migration on startup.
-
-## What Is Unchanged from Upstream
-
-- The web UI, REST/gRPC APIs, Markdown notes, tags, resources (attachments),
-  and RSS follow the upstream docs, subject to the 0.30.0 changes above.
-- The image's bundled entrypoint script (chown + su-exec) and non-root
-  runtime model are unchanged.
-- SQLite is the default DB backend (upstream default).
-
-## Contributing
-
-See [`AGENTS.md`](./AGENTS.md) for the agent workflow, the SDK pin rationale,
-and how to inspect a running install. The remaining verification checklist
-lives in [`TODO.md`](./TODO.md).
+1. **SQLite only.** Memos also supports PostgreSQL and MySQL backends; this
+   package does not expose them.
+2. **No administrator is provisioned.** Upstream offers no CLI or API to create
+   one, so the first web sign-up takes the role and closing registration is
+   done inside Memos. Recovering a lost password is the **Reset Admin
+   Password** action's job — Memos itself has no recovery flow.
+3. **A private instance advertises no origin.** With no non-local address
+   enabled, `MEMOS_INSTANCE_URL` is empty and Memos treats itself as private:
+   RSS feeds and public anonymous access are unavailable until an address
+   exists or one is pinned.
+4. **Attachments are backed up in full.** The volume is copied rather than
+   synced incrementally, so backup size tracks total attachment size.
 
 ---
 
@@ -204,23 +217,31 @@ lives in [`TODO.md`](./TODO.md).
 
 ```yaml
 package_id: memos
-architectures: [x86_64, aarch64]
-image: neosmemo/memos:0.30.0
+image: neosmemo/memos # plus a locally built `reset` image
+architectures:
+  - x86_64
+  - aarch64
+subcontainers:
+  - memos # the daemon
+  - reset # sqlite3, run on demand by reset-password
 volumes:
   main: /var/opt/memos
-ports:
-  ui: 5230
-dependencies: []
+file_models:
+  - store.json
 startos_managed_env_vars:
-  - MEMOS_PORT            # 5230
-  - MEMOS_DATA            # /var/opt/memos
-  - MEMOS_DRIVER          # sqlite
-  - MEMOS_INSTANCE_URL    # auto-derived from ui host, or pinned via Set Instance URL
-  - MEMOS_LOG_LEVEL       # info
+  - MEMOS_PORT
+  - MEMOS_DATA
+  - MEMOS_DRIVER
+  - MEMOS_INSTANCE_URL
+  - MEMOS_LOG_LEVEL
+dependencies: []
+interfaces:
+  ui: { type: ui, port: 5230 }
 actions:
   - set-instance-url
-store_json:
-  instanceUrl: pinned MEMOS_INSTANCE_URL origin (empty = auto-derive; no address = private)
-sdk: @start9labs/start-sdk@2.0.9
-os_version: 0.4.0-beta.10 (SDK-stamped; runtime-verified on host 0.4.0.1)
+  - reset-password
+tasks:
+  - { action: set-instance-url, severity: optional }
+health_checks:
+  - memos # displayed "Web Interface"
 ```

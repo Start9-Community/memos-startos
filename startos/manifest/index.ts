@@ -5,7 +5,7 @@ export const manifest = setupManifest({
   id: 'memos',
   title: 'Memos',
   license: 'MIT',
-  packageRepo: 'https://github.com/Start9Labs/memos-startos',
+  packageRepo: 'https://github.com/Start9-Community/memos-startos',
   upstreamRepo: 'https://github.com/usememos/memos',
   marketingUrl: 'https://usememos.com',
   donationUrl: null,
@@ -16,9 +16,13 @@ export const manifest = setupManifest({
       source: { dockerTag: 'neosmemo/memos:0.30.0' },
       arch: ['x86_64', 'aarch64'],
     },
+    reset: {
+      source: { dockerBuild: { workdir: 'reset' } },
+      arch: ['x86_64', 'aarch64'],
+    },
   },
   hardwareRequirements: {
-    ram: 256,
+    ram: 256 * 1024 ** 2,
   },
   dependencies: {},
 })

@@ -17,6 +17,14 @@ const dict = {
   'Auto (derive from current address)': 10,
   // init/watchInstanceUrl.ts
   'If you use RSS feeds or webhooks into Memos, pin the Instance URL to your external domain so generated links resolve correctly. Otherwise the URL is derived automatically.': 11,
+  // actions/resetPassword.ts
+  'Reset Admin Password': 12,
+  'Generate a new password for the administrator account. Use this if you are locked out of the web interface.': 13,
+  'This replaces the administrator password with a new random one.': 14,
+  'Admin Password Reset': 15,
+  'The administrator password has been reset. Save these credentials somewhere safe — they are shown once. Start the service to sign in.': 16,
+  Username: 17,
+  Password: 18,
 } as const
 
 /**

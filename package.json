@@ -6,7 +6,11 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@start9labs/start-sdk": "2.0.9"
+    "@start9labs/start-sdk": "2.0.9",
+    "bcryptjs": "^3.0.3"
+  },
+  "overrides": {
+    "@start9labs/start-sdk": "$@start9labs/start-sdk"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",

@@ -3,71 +3,73 @@
 ## Documentation
 
 - [Memos documentation](https://usememos.com/docs) — how to use Memos and what each feature does.
-- [Docker deployment guide](https://usememos.com/docs/deploy/docker) — how the image is configured upstream.
-- [Upstream README](https://github.com/usememos/memos#readme) — feature overview and screenshots.
+- [Docker deployment guide](https://usememos.com/docs/deploy/docker) — the settings reference behind the environment this package sets for you.
 
 ## What you get on StartOS
 
-Memos on StartOS runs the official `neosmemo/memos` image as a single daemon
-with an embedded SQLite database, fronted by a single web address.
-
-- The **web interface** is the only exposed port (internal `5230`). Open it
-  from your Dashboard to sign in, create notes, and upload resources.
-- **Data** (the SQLite DB `memos_prod.db` and uploaded assets) persists on the
-  `main` volume under `/var/opt/memos`.
-- **No sidecars** — SQLite is embedded, so there is no external database to
-  manage.
-- The app runs as a **non-root** user (UID/GID `10001`); the image's
-  entrypoint auto-chowns the data volume at every boot.
+- **One web address** that serves both the Memos interface and its API. Open it
+  from the Dashboard to sign in, write notes, and upload attachments.
+- **Everything stored in one place.** Your notes, accounts, and attachments all
+  live in the service's data volume, so a backup captures the whole instance and
+  a restore brings it back ready to use.
 
 ## Getting set up
 
-> **`<service-address>`** below is the URL shown on your service's page in the
-> StartOS dashboard (the "Web Interface" link).
+Memos has no way to create an administrator for you, so the first account wins
+the role.
 
-1. Open the service from your **Dashboard**.
-2. Because Memos has no CLI/API to provision an admin user, **sign-up is open
-   by default**. Open the web interface and **create your first account** — it
-   becomes the HOST (admin).
-3. Once you have an account, open **Memos Settings** (in the web UI) and
-   **disable public sign-up** if you don't want others to register.
+1. Open the **Web Interface** from the Dashboard.
+2. **Create your account.** The first one created becomes the administrator of
+   this instance.
+3. In Memos, open **Settings** and turn off public sign-up, unless you want
+   other people to be able to register.
 
-That's all that's required for normal use. Memos 0.30.0 is private when no
-instance URL is available. If you use **RSS feeds, webhooks, or public
-anonymous access**, there is one extra step — see below.
+That is everything a normal install needs.
 
-## RSS / Webhooks — pin the Instance URL
+## Using Memos
 
-Memos uses `MEMOS_INSTANCE_URL` to build absolute URLs and determine whether
-an instance is public. Because a StartOS service is reachable at several
-addresses (LAN, Tor, clearnet), the package **derives** `MEMOS_INSTANCE_URL`
-automatically from the web interface's current public address when available.
-If no address is available, Memos runs in private mode until an address is
-available or you pin one. **Auto** can derive a changing StartOS address, so
-pin a stable external domain for RSS, webhooks, or public anonymous access.
+### Web interface
 
-RSS/webhooks and public anonymous access require an instance URL that resolves
-to a stable external domain. For those, you should **pin** the Instance URL
-to your external domain:
+The web interface is the whole application: your notes, tags, attachments,
+search, and the admin settings. It also serves the REST and gRPC APIs that the
+mobile and browser clients use, at the same address.
+
+### RSS feeds, webhooks, and public sharing
+
+Memos builds the absolute links it hands out — RSS feed URLs, webhook targets,
+shared-memo links — from a single "instance URL". StartOS sets that for you from
+whichever address you have enabled, which is right for most people but changes
+if you later enable or disable an address.
+
+If you rely on RSS, webhooks, or public anonymous access, pin it instead:
 
 1. Open **Actions → Set Instance URL**.
-2. Pick your externally-registered host from the list (or **Auto** to clear a
-   pin and go back to automatic derivation).
-3. The service restarts automatically and `MEMOS_INSTANCE_URL` follows your
-   choice.
+2. Choose the address you want Memos to advertise — normally your own domain.
+3. Memos restarts and uses it from then on. Choose **Auto** later to go back to
+   letting StartOS pick.
 
-## Actions
+If no address is enabled at all, Memos has no instance URL to advertise and runs
+as a private instance: RSS and public anonymous access stay switched off until
+one exists.
 
-- **Set Instance URL** — pins (or unpins, via **Auto**) the hostname Memos
-  uses for `MEMOS_INSTANCE_URL`. An instance URL enables public anonymous access
-  and is required for RSS feeds or webhooks.
+### If you lose your password
 
-## Notes
+Memos has no "forgot password" link and no way to email you a reset, so StartOS
+provides one:
 
-- The first account created becomes the HOST (admin). Close public sign-up in
-  Memos Settings afterward if you don't want further registrations.
-- Backing up the service captures the full `main` volume (SQLite DB + uploaded
-  assets). Restoring brings back your notes, accounts, and resources.
-- Memos 0.30.0 changed saved time-filter syntax, shared-memo API routes, and
-  MCP endpoint/tool names. Update clients using those features according to
-  the upstream release notes.
+1. **Stop the service.** The action rewrites the database directly, so nothing
+   may be using it.
+2. Run **Actions → Reset Admin Password**.
+3. Copy the username and password it gives you — the password is shown once.
+4. Start the service and sign in.
+
+This resets the administrator account only. If you are the administrator and
+someone else has forgotten *their* password, change it for them from Memos'
+own settings instead.
+
+### Actions
+
+- **Set Instance URL** — pins the address Memos advertises, or returns it to
+  **Auto**. Only needed for RSS, webhooks, or public sharing.
+- **Reset Admin Password** — mints a new administrator password when you are
+  locked out. The service must be stopped first.
