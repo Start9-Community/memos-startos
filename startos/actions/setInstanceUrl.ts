@@ -5,14 +5,16 @@ import { INSTANCE_URL_AUTO, uiPort } from '../utils'
 
 const { InputSpec, Value } = sdk
 
-// The dynamicSelect builder enumerates the **current** non-local hostnames of
-// the `ui` interface as full origin URLs. It runs when the form opens, so the
-// list reflects whatever addresses (LAN / Tor / clearnet) are reachable at
-// that moment.
+// The builder runs when the form opens, so the list is whatever addresses are
+// reachable at that moment.
 const inputSpec = InputSpec.of({
   url: Value.dynamicSelect(async ({ effects }) => {
     const iface = await sdk.host
-      .getOwn(effects, 'ui', (h) => h?.bindings[uiPort]?.interfaces['ui'] ?? null)
+      .getOwn(
+        effects,
+        'ui',
+        (h) => h?.bindings[uiPort]?.interfaces['ui'] ?? null,
+      )
       .once()
     const origins: string[] =
       iface?.addressInfo?.nonLocal.format('urlstring') ?? []
@@ -38,17 +40,12 @@ const inputSpec = InputSpec.of({
   }),
 })
 
-// Pins (or unpins) the origin Memos uses for MEMOS_INSTANCE_URL. Selecting
-// "Auto" clears the pin so main.ts derives the origin from the ui host at
-// runtime; selecting a concrete host stores it verbatim. The store write is
-// reactive, so setupMain rebuilds the memos daemon with the new
-// MEMOS_INSTANCE_URL without a manual restart.
 export const setInstanceUrl = sdk.Action.withInput(
   'set-instance-url',
   {
     name: i18n('Set Instance URL'),
     description: i18n(
-       'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. An instance URL enables public anonymous access and is required for RSS feeds and webhooks. For private use, select Auto when no address should be advertised.',
+      'Pin the host origin Memos advertises as MEMOS_INSTANCE_URL. An instance URL enables public anonymous access and is required for RSS feeds and webhooks. For private use, select Auto when no address should be advertised.',
     ),
     warning: null,
     allowedStatuses: 'any',

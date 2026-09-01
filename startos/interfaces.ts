@@ -19,7 +19,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     masked: false,
     schemeOverride: null,
     username: null,
-    path: '/auth',
+    path: '',
     query: {},
   })
 

@@ -8,7 +8,7 @@ export const short = {
   pl_PL:
     'Lekka, samohostowana usługa do robienia notatek. Oparta na Markdown i SQLite — w pełni Twoja.',
   fr_FR:
-    "Service de prise de notes léger et auto-hébergé. Natif Markdown, basé sur SQLite, et entièrement à vous.",
+    'Service de prise de notes léger et auto-hébergé. Natif Markdown, basé sur SQLite, et entièrement à vous.',
 }
 
 export const long = {

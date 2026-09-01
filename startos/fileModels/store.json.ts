@@ -1,10 +1,8 @@
 import { FileHelper, z } from '@start9labs/start-sdk'
 import { sdk } from '../sdk'
 
-// Package-local state. We only persist an optional MEMOS_INSTANCE_URL pin;
-// empty string means "derive at runtime from the ui host" (see main.ts).
-// Seeded to '' at install (init/seedFiles.ts) and NOT regenerated on restore.
 const shape = z.object({
+  // Empty means "derive MEMOS_INSTANCE_URL from the ui host at runtime".
   instanceUrl: z.string().catch(''),
 })
 
