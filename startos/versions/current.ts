@@ -1,7 +1,7 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.31.0:0',
+  version: '0.31.0:1',
   releaseNotes: {
     en_US: `Updated Memos to 0.31.0.
 
@@ -21,7 +21,14 @@ export const current = VersionInfo.of({
 - Integrations using the old Shortcut API must move to the Views API
 - Instance administrators can now read and manage all memos, including private ones
 
-[Full release notes](https://github.com/usememos/memos/releases/tag/v0.31.0)`,
+[Full release notes](https://github.com/usememos/memos/releases/tag/v0.31.0)
+
+**StartOS package**
+
+- Reset Admin Password's confirmation states that it signs out the administrator's sessions
+- Until an instance URL is chosen, Memos uses your public domain if you have one, otherwise the .local address
+- Open UI opens the instance URL
+- The Set Instance URL task clears once a URL is chosen, and returns if that address is removed`,
     es_ES: `Memos actualizado a 0.31.0.
 
 **Novedades**
@@ -40,7 +47,14 @@ export const current = VersionInfo.of({
 - Las integraciones que usaban la antigua API de Shortcuts deben pasar a la API de Vistas
 - Los administradores de la instancia ahora pueden leer y gestionar todas las notas, incluidas las privadas
 
-[Notas de la versión completa](https://github.com/usememos/memos/releases/tag/v0.31.0)`,
+[Notas de la versión completa](https://github.com/usememos/memos/releases/tag/v0.31.0)
+
+**Paquete de StartOS**
+
+- La confirmación de Restablecer contraseña de administrador indica que cierra las sesiones del administrador
+- Mientras no se elija una URL de instancia, Memos usa tu dominio público si tienes uno y, si no, la dirección .local
+- Abrir interfaz abre la URL de instancia
+- La tarea Definir URL de Instancia desaparece al elegir una URL y vuelve si esa dirección se elimina`,
     de_DE: `Memos auf 0.31.0 aktualisiert.
 
 **Neuerungen**
@@ -59,7 +73,14 @@ export const current = VersionInfo.of({
 - Integrationen, die die alte Shortcut-API nutzen, müssen auf die Views-API umsteigen
 - Instanz-Administratoren können jetzt alle Notizen lesen und verwalten, auch private
 
-[Vollständige Versionshinweise](https://github.com/usememos/memos/releases/tag/v0.31.0)`,
+[Vollständige Versionshinweise](https://github.com/usememos/memos/releases/tag/v0.31.0)
+
+**StartOS-Paket**
+
+- Die Bestätigung von Administrator-Passwort zurücksetzen weist darauf hin, dass die Sitzungen des Administrators abgemeldet werden
+- Solange keine Instanz-URL gewählt ist, verwendet Memos deine öffentliche Domain, falls vorhanden, sonst die .local-Adresse
+- Oberfläche öffnen öffnet die Instanz-URL
+- Die Aufgabe Instanz-URL festlegen verschwindet, sobald eine URL gewählt ist, und kehrt zurück, wenn diese Adresse entfernt wird`,
     pl_PL: `Zaktualizowano Memos do 0.31.0.
 
 **Nowości**
@@ -78,7 +99,14 @@ export const current = VersionInfo.of({
 - Integracje korzystające ze starego API Shortcuts muszą przejść na API Widoków
 - Administratorzy instancji mogą teraz czytać i zarządzać wszystkimi notatkami, także prywatnymi
 
-[Pełne informacje o wydaniu](https://github.com/usememos/memos/releases/tag/v0.31.0)`,
+[Pełne informacje o wydaniu](https://github.com/usememos/memos/releases/tag/v0.31.0)
+
+**Pakiet StartOS**
+
+- Potwierdzenie akcji Zresetuj hasło administratora informuje, że sesje administratora zostaną wylogowane
+- Dopóki nie wybierzesz URL instancji, Memos używa Twojej domeny publicznej, jeśli ją masz, a w przeciwnym razie adresu .local
+- Otwórz interfejs otwiera URL instancji
+- Zadanie Ustaw URL instancji znika po wybraniu adresu i wraca, jeśli ten adres zostanie usunięty`,
     fr_FR: `Memos mis à jour vers 0.31.0.
 
 **Nouveautés**
@@ -97,7 +125,14 @@ export const current = VersionInfo.of({
 - Les intégrations utilisant l'ancienne API Shortcuts doivent migrer vers l'API Vues
 - Les administrateurs d'instance peuvent désormais lire et gérer toutes les notes, y compris privées
 
-[Notes de version complètes](https://github.com/usememos/memos/releases/tag/v0.31.0)`,
+[Notes de version complètes](https://github.com/usememos/memos/releases/tag/v0.31.0)
+
+**Paquet StartOS**
+
+- La confirmation de Réinitialiser le mot de passe administrateur indique que les sessions de l'administrateur seront déconnectées
+- Tant qu'aucune URL d'instance n'est choisie, Memos utilise votre domaine public si vous en avez un, sinon l'adresse .local
+- Ouvrir l'interface ouvre l'URL d'instance
+- La tâche Définir l'URL d'instance disparaît une fois une URL choisie, et revient si cette adresse est supprimée`,
   },
   migrations: {
     up: async ({ effects }) => {},

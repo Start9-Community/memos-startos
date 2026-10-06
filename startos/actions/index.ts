@@ -1,7 +1,7 @@
 import { sdk } from '../sdk'
 import { resetPassword } from './resetPassword'
-import { setInstanceUrl } from './setInstanceUrl'
+import { primaryUrl } from './setInstanceUrl'
 
 export const actions = sdk.Actions.of()
-  .addAction(setInstanceUrl)
+  .addAction(primaryUrl.action)
   .addAction(resetPassword)

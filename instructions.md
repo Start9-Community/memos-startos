@@ -37,17 +37,17 @@ mobile and browser clients use, at the same address.
 ### Instance URL and public access
 
 Memos has a single "instance URL" — the canonical address it advertises to
-clients and trusts for cross-origin requests. StartOS sets that for you from
-whichever address you have enabled, which is right for most people but changes
-if you later enable or disable an address.
+clients and trusts for cross-origin requests. Until you choose one, StartOS
+uses your public domain if you have one, otherwise the server's `.local`
+address, which changes if you later add or remove an address.
 
-If you want Memos to advertise a stable origin — normally your own domain — pin
-it instead:
+If you want Memos to advertise a stable origin — normally your own domain —
+choose it:
 
 1. Open **Actions → Set Instance URL**.
 2. Choose the address you want Memos to advertise — normally your own domain.
-3. Memos restarts and uses it from then on. Choose **Auto** later to go back to
-   letting StartOS pick.
+3. Memos restarts and uses it from then on. **Open UI** opens that address
+   too. If you later remove that address, StartOS asks you to choose again.
 
 Whether the instance is public or private is a separate setting inside Memos,
 under **Settings → System → Access and policies**. It is decided once from the instance
@@ -73,8 +73,8 @@ instead.
 
 ### Actions
 
-- **Set Instance URL** — pins the address Memos advertises, or returns it to
-  **Auto**. Only needed when generated links should use a stable domain.
+- **Set Instance URL** — chooses the address Memos advertises. Only needed when
+  generated links should use a stable domain.
 - **Reset Admin Password** — mints a new administrator password when you are
   locked out, and signs out sessions using the old one. The service must be
   stopped first.

@@ -1,28 +1,13 @@
 import { i18n } from './i18n'
 import { sdk } from './sdk'
-import { storeJson } from './fileModels/store.json'
+import { primaryUrl } from './actions/setInstanceUrl'
 import { dataDir, uiPort } from './utils'
 
 export const main = sdk.setupMain(async ({ effects }) => {
   console.info(i18n('Starting Memos'))
 
-  const instanceUrlPin = await storeJson
-    .read((s) => s.instanceUrl)
-    .const(effects)
-
-  const uiInterface = await sdk.host
-    .getOwn(effects, 'ui', (h) => h?.bindings[uiPort]?.interfaces['ui'] ?? null)
-    .const()
-  const addressInfo = uiInterface?.addressInfo ?? null
-  const first = (list: string[] | undefined) => list?.[0] ?? null
-  // Access mode is captured once from this value on first start: a non-empty
-  // URL starts the instance public, an empty one private. Later changes to the
-  // URL do not alter it; it is changed only in Memos' own settings.
-  const instanceUrl =
-    instanceUrlPin ||
-    first(addressInfo?.public.format('urlstring')) ||
-    first(addressInfo?.nonLocal.format('urlstring')) ||
-    ''
+  // Memos sets its access mode from this once, on first start: empty is private.
+  const instanceUrl = (await primaryUrl.bestUsable(effects).const()) ?? ''
 
   const memosSub = sdk.SubContainer.of(
     effects,

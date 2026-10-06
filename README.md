@@ -80,11 +80,12 @@ One model, and it holds StartOS-side state rather than Memos configuration.
 | ------------ | ----------------------------- | ------ |
 | `store.json` | `store.json` on `main`'s root | JSON   |
 
-It holds a single key, `instanceUrl` — the origin pinned through the **Set
+It holds a single key, `instanceUrl` — the origin chosen through the **Set
 Instance URL** action. It is seeded to `""` on install only, and a restore
-carries the user's pin forward untouched. An empty value means "derive at
-runtime"; a non-empty value is used verbatim and is never re-asserted by the
-package, so a pin survives address changes until the user clears it.
+carries the user's choice forward untouched. An empty value means "not chosen
+yet". The package never rewrites a chosen value: while its hostname is not one
+of the interface's addresses Memos is given another address, and it returns to
+the chosen one when that hostname comes back.
 
 Everything else Memos needs is delivered as an environment variable, re-read on
 every launch: `MEMOS_PORT`, `MEMOS_DATA`, `MEMOS_DRIVER`, `MEMOS_LOG_LEVEL`,
@@ -103,11 +104,12 @@ One interface, serving both the web UI and the API.
 | --------- | ---- | ---- | ---- | ---------------------------------------------- |
 | Web Interface | `ui` | ui | 5230 | The Memos UI, and its REST and gRPC endpoints |
 
-`MEMOS_INSTANCE_URL` is derived from this interface's enabled addresses,
-preferring a publicly reachable one and falling back to any non-local address.
-The value is resolved when the daemon starts, so a service that has just gained
-or lost an address may need a restart before Memos advertises the new one. An
-origin pinned through the action is applied immediately. Memos captures its
+`MEMOS_INSTANCE_URL` is the address chosen through **Set Instance URL**,
+followed to its hostname's current port and scheme. Until one is chosen, or
+while the chosen hostname is not one of this interface's addresses, it is a
+public domain (HTTPS first), else the server's `.local` address, else the first
+non-local address; with no non-local address at all it is empty. The daemon
+restarts when the value changes. **Open UI** opens the same address. Memos captures its
 public/private access mode once from this value on first start; afterwards the
 URL no longer controls access, which is changed in Memos under **Settings →
 System → Access and policies**.
@@ -130,20 +132,20 @@ Two actions, neither needed on an ordinary day.
 **Set Instance URL** (`set-instance-url`)
 
 - **When to run it** — when Memos should advertise a stable external origin
-  for generated links and trusted-origin checks. The derived value follows
-  whichever address the user currently has enabled, which can change. This
-  action does not control public access — that is a setting inside Memos.
+  for generated links and trusted-origin checks. Until a URL is chosen, the
+  value follows the preferred address, which changes as addresses are added or
+  removed. This action does not control public access — that is a setting
+  inside Memos.
 - **What it changes** — the `instanceUrl` key in `store.json`. Nothing inside
   Memos' own database is touched.
 - **Cost** — the daemon restarts to pick up the new environment; a few seconds
   of downtime.
-- **Repeat safety** — idempotent. Re-running with the same choice is a no-op;
-  choosing **Auto** clears the pin and returns to derivation.
-- **Outputs** — the origin now in effect.
+- **Repeat safety** — idempotent. Re-running with the same choice is a no-op.
+- **Outputs** — none.
 
-The input is a dropdown of the `ui` interface's currently reachable non-local
-addresses, built when the form opens. An install with no non-local address to
-advertise offers only **Auto**.
+The input is a dropdown of the `ui` interface's non-local addresses, built when
+the form opens, with the preferred address (as above) preselected. It is
+`sdk.setupPrimaryUrl`'s action.
 
 **Reset Admin Password** (`reset-password`)
 
@@ -171,13 +173,11 @@ One task, and it never blocks the service.
 
 | Task            | Severity   | Raised by                     |
 | --------------- | ---------- | ----------------------------- |
-| Set Instance URL | `optional` | Every init, on every start    |
+| Set Instance URL | `optional` | Every init, while no URL is chosen or the chosen hostname is gone |
 
-It is a standing reminder that generated links and trusted-origin checks should
-have a stable origin to point at. It is raised unconditionally rather than on a
-condition, so it is present from the first start; running the action satisfies
-it, and satisfying it is permanent — the replay key is stable, so later starts
-do not raise it again.
+It is raised from the first start, since nothing is chosen on install, and
+clears once the stored URL is one of the interface's addresses. It comes back
+if that address is removed, and clears again when it returns.
 
 ## Health Checks
 
