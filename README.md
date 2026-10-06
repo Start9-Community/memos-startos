@@ -84,8 +84,9 @@ It holds a single key, `instanceUrl` — the origin chosen through the **Set
 Instance URL** action. It is seeded to `""` on install only, and a restore
 carries the user's choice forward untouched. An empty value means "not chosen
 yet". The package never rewrites a chosen value: while its hostname is not one
-of the interface's addresses Memos is given another address, and it returns to
-the chosen one when that hostname comes back.
+of the interface's addresses Memos is given another available address, and it
+returns to the chosen one when that hostname comes back. If no address is
+available, Memos retains the stored URL.
 
 Everything else Memos needs is delivered as an environment variable, re-read on
 every launch: `MEMOS_PORT`, `MEMOS_DATA`, `MEMOS_DRIVER`, `MEMOS_LOG_LEVEL`,
@@ -108,8 +109,9 @@ One interface, serving both the web UI and the API.
 followed to its hostname's current port and scheme. Until one is chosen, or
 while the chosen hostname is not one of this interface's addresses, it is a
 public domain (HTTPS first), else the server's `.local` address, else the first
-non-local address; with no non-local address at all it is empty. The daemon
-restarts when the value changes. **Open UI** opens the same address. Memos captures its
+non-local address. With no non-local address, it retains the stored URL, or is
+empty if no URL was chosen. The daemon restarts when the value changes.
+The interface nominates that address for **Open UI**. Memos captures its
 public/private access mode once from this value on first start; afterwards the
 URL no longer controls access, which is changed in Memos under **Settings →
 System → Access and policies**.
