@@ -111,7 +111,9 @@ while the chosen hostname is not one of this interface's addresses, it is a
 public domain (HTTPS first), else the server's `.local` address, else the first
 non-local address. With no non-local address, it retains the stored URL, or is
 empty if no URL was chosen. The daemon restarts when the value changes.
-The interface nominates that address for **Open UI**. Memos captures its
+The interface nominates that address for **Open UI**, which prefers it when
+StartOS considers it reachable from the current session; an onion origin, for
+example, is used only from a Tor session. Memos captures its
 public/private access mode once from this value on first start; afterwards the
 URL no longer controls access, which is changed in Memos under **Settings →
 System → Access and policies**.

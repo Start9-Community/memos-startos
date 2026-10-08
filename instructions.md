@@ -47,7 +47,8 @@ choose it:
 1. Open **Actions → Set Instance URL**.
 2. Choose the address you want Memos to advertise — normally your own domain.
 3. Memos restarts and uses it from then on. **Open UI** opens that address
-   too. If you later remove that address, StartOS asks you to choose again.
+   too when your connection can reach it. If you later remove that address,
+   StartOS asks you to choose again.
 
 Whether the instance is public or private is a separate setting inside Memos,
 under **Settings → System → Access and policies**. It is decided once from the instance
