@@ -1,8 +1,7 @@
 import { FileHelper, z } from '@start9labs/start-sdk'
 import { sdk } from '../sdk'
 
-const shape = z.object({
-  // Empty means "derive MEMOS_INSTANCE_URL from the ui host at runtime".
+const shape = z.looseObject({
   instanceUrl: z.string().catch(''),
 })
 

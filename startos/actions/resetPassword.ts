@@ -15,7 +15,7 @@ export const resetPassword = sdk.Action.withoutInput(
       'Generate a new password for the administrator account. Use this if you are locked out of the web interface.',
     ),
     warning: i18n(
-      'This replaces the administrator password with a new random one.',
+      "This replaces the administrator password with a new random one and signs out the administrator's sessions.",
     ),
     // The database is a file on the volume, so nothing may hold it open.
     allowedStatuses: 'only-stopped',

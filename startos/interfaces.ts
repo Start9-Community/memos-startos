@@ -1,6 +1,7 @@
 import { i18n } from './i18n'
 import { sdk } from './sdk'
 import { uiPort } from './utils'
+import { primaryUrl } from './actions/setInstanceUrl'
 
 export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   const multi = sdk.MultiHost.of(effects, 'ui')
@@ -21,6 +22,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     username: null,
     path: '',
     query: {},
+    preferredLauncherAddress: await primaryUrl.bestUsable(effects).const(),
   })
 
   return [await origin.export([ui])]
