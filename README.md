@@ -11,7 +11,7 @@
 
 Memos is a self-hosted note-taking service that stores notes as Markdown in an
 embedded SQLite database and exposes them over REST and gRPC. This package runs
-the upstream image unmodified and derives the one setting that a StartOS
+the upstream image, with a temporary CA-store layer, and derives the one setting that a StartOS
 service cannot know for itself: the origin Memos advertises to the outside
 world.
 
@@ -39,11 +39,11 @@ world.
 
 ## Image and Container Runtime
 
-The upstream image, run unmodified, plus a small one this repository builds.
+The upstream image, plus a small one this repository builds. The root `Dockerfile` upgrades the upstream image's CA store, a temporary layer that comes out once upstream ships an image built on a fixed store.
 
 | Property      | Value                                            |
 | ------------- | ------------------------------------------------ |
-| Images        | `neosmemo/memos`, plus `reset` built from `reset/` |
+| Images        | `neosmemo/memos` + root `Dockerfile`, plus `reset` built from `reset/` |
 | Architectures | x86_64, aarch64                                   |
 | Command       | the image's own entrypoint                        |
 
@@ -230,7 +230,7 @@ files live outside this volume and are not captured by a StartOS backup.
 
 ```yaml
 package_id: memos
-image: neosmemo/memos # plus a locally built `reset` image
+image: neosmemo/memos + root Dockerfile (CA store upgrade) # plus a locally built `reset` image
 architectures:
   - x86_64
   - aarch64

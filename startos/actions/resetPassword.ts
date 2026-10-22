@@ -93,6 +93,7 @@ sqlite3 "$DB" "SELECT username FROM user WHERE id=$ID"`
             masked: false,
             copyable: true,
             qr: false,
+            launchable: false,
           },
           {
             type: 'single',
@@ -102,6 +103,7 @@ sqlite3 "$DB" "SELECT username FROM user WHERE id=$ID"`
             masked: true,
             copyable: true,
             qr: false,
+            launchable: false,
           },
         ],
       },
